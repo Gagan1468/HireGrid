@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HireGrid — AI Hiring Co-Pilot</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800;900&family=Barlow:wght@300;400;500&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+
+:root {
+  --black:   #090909;
+  --ink:     #0d0d0d;
+  --surface: #111111;
+  --card:    #141414;
+  --border:  #222222;
+  --border2: #1a1a1a;
+  --neon:    #C8F135;
+  --neon2:   #35F1A0;
+  --amber:   #F1A835;
+  --red:     #F13535;
+  --blue:    #35A0F1;
+  --white:   #F0F0F0;
+  --muted:   #555555;
+  --muted2:  #333333;
+  --cond:    'Barlow Condensed', sans-serif;
+  --body:    'Barlow', sans-serif;
+  --mono:    'IBM Plex Mono', monospace;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--body);
+  font-weight: 300;
+  line-height: 1.6;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+#cur { position:fixed; width:8px; height:8px; background:var(--neon); border-radius:50%; pointer-events:none; z-index:9999; transform:translate(-50%,-50%); transition:transform .1s; }
+#cur-ring { position:fixed; width:32px; height:32px; border:1px solid var(--neon); border-radius:50%; pointer-events:none; z-index:9998; transform:translate(-50%,-50%); transition:width .3s,height .3s,opacity .3s; opacity:.4; }
+
+body::after {
+  content:'';
+  position:fixed; inset:0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events:none; z-index:800;
+}
+
+nav {
+  position:fixed; top:0; left:0; right:0; z-index:600;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 60px; height:64px;
+  background:rgba(9,9,9,0.92);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.nav-logo { font-family:var(--cond); font-size:1.8rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; text-decoration:none; color:var(--white); }
+.nav-logo span { color:var(--neon); }
+.nav-badge { font-family:var(--mono); font-size:.6rem; background:rgba(200,241,53,0.1); color:var(--neon); border:1px solid rgba(200,241,53,0.25); padding:3px 10px; border-radius:2px; letter-spacing:.1em; margin-left:10px; vertical-align:middle; }
+.nav-links { display:flex; align-items:center; gap:36px; list-style:none; }
+.nav-links a { font-family:var(--cond); font-size:.9rem; font-weight:500; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); text-decoration:none; transition:color .2s; }
+.nav-links a:hover { color:var(--neon); }
+.nav-cta { background:var(--neon) !important; color:var(--black) !important; padding:10px 22px !important; border-radius:2px; font-weight:700 !important; transition:background .2s, box-shadow .2s !important; }
+.nav-cta:hover { background:#d4ff40 !important; box-shadow:0 0 20px rgba(200,241,53,.35) !important; }
+
+/* ─── HERO ─── */
+.hero { min-height:100vh; display:flex; align-items:center; padding:100px 60px 80px; position:relative; overflow:hidden; }
+.hero-grid { position:absolute; inset:0; pointer-events:none; background-image: linear-gradient(rgba(200,241,53,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(200,241,53,.04) 1px, transparent 1px); background-size:60px 60px; animation:gridShift 20s linear infinite; }
+@keyframes gridShift { from{background-position:0 0} to{background-position:60px 60px} }
+.hero-glow { position:absolute; top:-200px; right:-100px; width:800px; height:800px; background:radial-gradient(circle, rgba(200,241,53,.06) 0%, transparent 65%); pointer-events:none; }
+.hero-inner { max-width:1300px; margin:0 auto; width:100%; display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; position:relative; z-index:2; }
+.hero-eyebrow { display:inline-flex; align-items:center; gap:10px; font-family:var(--mono); font-size:.7rem; color:var(--neon); letter-spacing:.15em; text-transform:uppercase; margin-bottom:20px; opacity:0; animation:fadeUp .8s .3s ease forwards; }
+.blink { animation:blinkAnim 1.2s step-end infinite; }
+@keyframes blinkAnim { 0%,100%{opacity:1} 50%{opacity:0} }
+.hero-title { font-family:var(--cond); font-size:clamp(3.5rem,7vw,7rem); font-weight:900; line-height:.95; letter-spacing:-.01em; text-transform:uppercase; margin-bottom:24px; opacity:0; animation:fadeUp .9s .5s ease forwards; }
+.hero-title .hl { color:var(--neon); display:block; }
+.hero-title .dim { color:var(--muted); font-weight:300; }
+.hero-sub { font-size:1.05rem; color:#888; line-height:1.7; max-width:480px; margin-bottom:44px; opacity:0; animation:fadeUp .9s .7s ease forwards; }
+.hero-sub strong { color:var(--white); font-weight:500; }
+.hero-btns { display:flex; gap:14px; flex-wrap:wrap; opacity:0; animation:fadeUp .9s .9s ease forwards; }
+
+.btn-neon { background:var(--neon); color:var(--black); border:none; padding:15px 36px; font-family:var(--cond); font-size:1.1rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; border-radius:2px; cursor:none; text-decoration:none; transition:all .2s; display:inline-block; }
+.btn-neon:hover { background:#d4ff40; box-shadow:0 0 40px rgba(200,241,53,.4); transform:translateY(-2px); }
+.btn-ghost { background:transparent; color:var(--white); border:1px solid var(--border); padding:14px 32px; font-family:var(--cond); font-size:1.1rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; border-radius:2px; cursor:none; text-decoration:none; transition:all .2s; display:inline-block; }
+.btn-ghost:hover { border-color:var(--neon); color:var(--neon); transform:translateY(-2px); }
+
+/* ─── HERO DASHBOARD ─── */
+.hero-dash { background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; box-shadow:0 0 0 1px rgba(200,241,53,.08), 0 40px 80px rgba(0,0,0,.6); opacity:0; animation:fadeUp 1s .6s ease forwards; }
+.dash-topbar { background:var(--ink); padding:12px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
+.dash-dots { display:flex; gap:7px; }
+.dd { width:10px; height:10px; border-radius:50%; }
+.dd:nth-child(1){background:#FF5F57} .dd:nth-child(2){background:#FFBD2E} .dd:nth-child(3){background:#28C840}
+.dash-title { font-family:var(--mono); font-size:.65rem; color:var(--muted); letter-spacing:.1em; }
+.dash-status { font-family:var(--mono); font-size:.6rem; color:var(--neon); letter-spacing:.1em; }
+.dash-body { padding:20px; }
+
+/* ══════════════════════════════════════════
+   UPLOAD ZONE — NEW FEATURE
+══════════════════════════════════════════ */
+.upload-zone {
+  border: 2px dashed rgba(200,241,53,.3);
+  border-radius: 4px;
+  padding: 20px;
+  margin-bottom: 16px;
+  text-align: center;
+  background: rgba(200,241,53,.03);
+  transition: all .3s;
+  position: relative;
+  cursor: none;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--neon);
+  background: rgba(200,241,53,.07);
+  box-shadow: 0 0 20px rgba(200,241,53,.1);
+}
+.upload-zone.has-files {
+  border-color: var(--neon2);
+  border-style: solid;
+  background: rgba(53,241,160,.04);
+}
+
+.upload-icon { font-size: 1.8rem; margin-bottom: 8px; display: block; }
+
+.upload-title {
+  font-family: var(--cond); font-size: 1rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em;
+  color: var(--white); margin-bottom: 4px;
+}
+
+.upload-sub {
+  font-family: var(--mono); font-size: .6rem;
+  color: var(--muted); letter-spacing: .08em; margin-bottom: 12px;
+}
+
+/* Hidden real file input */
+#resumeFileInput {
+  display: none;
+}
+
+/* Visible styled file button */
+.upload-btn {
+  background: rgba(200,241,53,.12);
+  border: 1px solid rgba(200,241,53,.25);
+  color: var(--neon);
+  font-family: var(--mono); font-size: .65rem;
+  letter-spacing: .1em; text-transform: uppercase;
+  padding: 8px 18px; border-radius: 2px;
+  cursor: none; transition: all .2s;
+  display: inline-block;
+}
+.upload-btn:hover {
+  background: rgba(200,241,53,.22);
+  box-shadow: 0 0 12px rgba(200,241,53,.2);
+}
+
+/* OR divider */
+.upload-or {
+  font-family: var(--mono); font-size: .55rem;
+  color: var(--muted); letter-spacing: .1em;
+  margin: 8px 0; display: block;
+}
+
+/* Number input row */
+.upload-count-row {
+  display: flex; align-items: center;
+  gap: 10px; margin-top: 10px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--border);
+  border-radius: 3px; padding: 10px 14px;
+}
+.upload-count-label {
+  font-family: var(--mono); font-size: .6rem;
+  color: var(--muted); letter-spacing: .08em;
+  flex: 1; text-align: left;
+}
+.upload-count-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(200,241,53,.3);
+  color: var(--neon);
+  font-family: var(--mono); font-size: .85rem;
+  font-weight: 500; letter-spacing: .05em;
+  width: 60px; text-align: center;
+  outline: none; padding: 2px 4px;
+  transition: border-color .2s;
+  cursor: none;
+  -moz-appearance: textfield;
+}
+.upload-count-input::-webkit-inner-spin-button,
+.upload-count-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.upload-count-input:focus { border-bottom-color: var(--neon); }
+
+.upload-count-max {
+  font-family: var(--mono); font-size: .55rem;
+  color: var(--muted2); letter-spacing: .05em;
+}
+
+/* File list pills */
+.file-list {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  margin-top: 10px; max-height: 60px; overflow-y: auto;
+}
+.file-pill {
+  font-family: var(--mono); font-size: .55rem;
+  color: var(--neon2); letter-spacing: .05em;
+  background: rgba(53,241,160,.08);
+  border: 1px solid rgba(53,241,160,.15);
+  padding: 3px 8px; border-radius: 20px;
+  white-space: nowrap;
+}
+.file-pill.extra {
+  color: var(--muted); background: rgba(255,255,255,.04);
+  border-color: var(--border);
+}
+
+/* Start scan button */
+.start-scan-btn {
+  width: 100%; margin-top: 12px;
+  background: var(--neon); color: var(--black);
+  border: none; padding: 12px;
+  font-family: var(--cond); font-size: 1rem; font-weight: 800;
+  letter-spacing: .12em; text-transform: uppercase;
+  border-radius: 2px; cursor: none;
+  transition: all .2s;
+  display: none; /* shown after files are added */
+}
+.start-scan-btn:hover { background: #d4ff40; box-shadow: 0 0 20px rgba(200,241,53,.35); }
+.start-scan-btn.visible { display: block; }
+
+/* Error message */
+.upload-error {
+  font-family: var(--mono); font-size: .6rem;
+  color: var(--red); letter-spacing: .05em;
+  margin-top: 6px; display: none;
+}
+.upload-error.show { display: block; }
+
+/* ─── Scan progress (same as before) ─── */
+.scan-progress { margin-bottom:16px; }
+.sp-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.sp-label { font-family:var(--mono); font-size:.65rem; color:var(--muted); letter-spacing:.08em; }
+.sp-count { font-family:var(--mono); font-size:.65rem; color:var(--neon); }
+.sp-track { height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+.sp-fill { height:100%; background:linear-gradient(90deg,var(--neon),var(--neon2)); border-radius:2px; width:0; transition:width .1s; }
+
+/* candidate rows */
+.cand-row { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:3px; margin-bottom:6px; border:1px solid transparent; transition:background .2s, border-color .2s; cursor:none; }
+.cand-row:hover { background:rgba(255,255,255,.03); border-color:var(--border); }
+.cand-rank { font-family:var(--mono); font-size:.7rem; font-weight:500; width:24px; text-align:center; color:var(--muted); flex-shrink:0; }
+.cand-rank.top { color:var(--neon); }
+.cand-avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.9rem; flex-shrink:0; }
+.cand-info { flex:1; min-width:0; }
+.cand-name { font-size:.8rem; font-weight:500; color:var(--white); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cand-role { font-family:var(--mono); font-size:.6rem; color:var(--muted); letter-spacing:.05em; }
+.cand-score-bar { width:60px; flex-shrink:0; }
+.csb-track { height:3px; background:var(--border); border-radius:2px; overflow:hidden; }
+.csb-fill { height:100%; border-radius:2px; }
+.csb-num { font-family:var(--mono); font-size:.6rem; text-align:right; margin-top:3px; }
+.cand-badge { font-family:var(--mono); font-size:.55rem; letter-spacing:.08em; padding:3px 8px; border-radius:20px; white-space:nowrap; flex-shrink:0; }
+.badge-hire { background:rgba(200,241,53,.12); color:var(--neon); border:1px solid rgba(200,241,53,.2); }
+.badge-maybe { background:rgba(241,168,53,.1); color:var(--amber); border:1px solid rgba(241,168,53,.2); }
+.badge-pass { background:rgba(241,53,53,.08); color:var(--red); border:1px solid rgba(241,53,53,.15); }
+
+.dash-footer { padding:14px 20px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+.df-stat { font-family:var(--mono); font-size:.6rem; color:var(--muted); letter-spacing:.08em; }
+.df-stat strong { color:var(--neon); font-weight:500; }
+.df-time { font-family:var(--mono); font-size:.7rem; color:var(--amber); }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+/* ─── TICKER ─── */
+.ticker { background:var(--neon); padding:10px 0; overflow:hidden; border-top:2px solid rgba(0,0,0,.1); border-bottom:2px solid rgba(0,0,0,.1); }
+.ticker-inner { display:flex; gap:60px; animation:tick 25s linear infinite; white-space:nowrap; width:max-content; }
+@keyframes tick { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+.tick-item { font-family:var(--cond); font-size:.85rem; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:var(--black); display:flex; align-items:center; gap:12px; }
+.tick-sep { opacity:.4; }
+
+section { padding:120px 60px; }
+.inner { max-width:1300px; margin:0 auto; }
+
+.sec-label { font-family:var(--mono); font-size:.65rem; color:var(--neon); letter-spacing:.25em; text-transform:uppercase; display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+.sec-label::before { content:''; width:24px; height:1px; background:var(--neon); }
+.sec-title { font-family:var(--cond); font-size:clamp(2.4rem,5vw,4.5rem); font-weight:900; text-transform:uppercase; line-height:.95; letter-spacing:-.01em; margin-bottom:20px; }
+.sec-title .hl { color:var(--neon); }
+.sec-title .dim { color:var(--muted); }
+.sec-body { font-size:1rem; color:#777; line-height:1.75; max-width:520px; }
+
+/* ─── PROBLEM ─── */
+.problem { background:var(--ink); position:relative; overflow:hidden; }
+.problem::before { content:'500'; position:absolute; right:-40px; top:50%; transform:translateY(-50%); font-family:var(--cond); font-size:30rem; font-weight:900; color:rgba(255,255,255,.015); line-height:1; pointer-events:none; }
+.prob-grid { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; }
+.prob-cards { display:flex; flex-direction:column; gap:12px; }
+.prob-card { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--muted2); padding:22px 24px; border-radius:2px; display:flex; align-items:flex-start; gap:18px; transition:border-color .3s, transform .3s, background .3s; cursor:none; }
+.prob-card:hover { border-left-color:var(--neon); background:rgba(200,241,53,.03); transform:translateX(6px); }
+.prob-card-icon { font-size:1.8rem; flex-shrink:0; margin-top:2px; }
+.prob-card-title { font-family:var(--cond); font-size:1.15rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:var(--white); margin-bottom:5px; }
+.prob-card-text { font-size:.82rem; color:#666; line-height:1.6; }
+
+/* ─── HOW ─── */
+.how { background:var(--black); }
+.how-head { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:end; margin-bottom:60px; }
+.steps { display:grid; grid-template-columns:repeat(5,1fr); gap:2px; }
+.step { background:var(--surface); padding:32px 24px; position:relative; overflow:hidden; border:1px solid var(--border); transition:background .3s, border-color .3s; cursor:none; }
+.step:hover { background:var(--card); border-color:rgba(200,241,53,.2); }
+.step::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--neon); transform:scaleX(0); transform-origin:left; transition:transform .4s ease; }
+.step:hover::after { transform:scaleX(1); }
+.step-num { font-family:var(--mono); font-size:.65rem; color:var(--muted); letter-spacing:.1em; margin-bottom:20px; }
+.step-icon { font-size:1.8rem; margin-bottom:14px; display:block; }
+.step-title { font-family:var(--cond); font-size:1rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--white); margin-bottom:8px; }
+.step-text { font-size:.78rem; color:#666; line-height:1.6; }
+
+/* ─── DEMO ─── */
+.demo-section { background:var(--ink); }
+.demo-inner { max-width:1300px; margin:0 auto; }
+.demo-head { display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:end; margin-bottom:56px; }
+.terminal { background:var(--black); border:1px solid var(--border); border-radius:6px; overflow:hidden; box-shadow:0 0 0 1px rgba(200,241,53,.05), 0 30px 60px rgba(0,0,0,.5); }
+.term-bar { background:#0a0a0a; padding:12px 20px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border); }
+.term-dots { display:flex; gap:7px; }
+.td { width:10px; height:10px; border-radius:50%; }
+.td:nth-child(1){background:#FF5F57} .td:nth-child(2){background:#FFBD2E} .td:nth-child(3){background:#28C840}
+.term-title { font-family:var(--mono); font-size:.65rem; color:var(--muted); letter-spacing:.1em; flex:1; text-align:center; }
+.score-table { width:100%; border-collapse:collapse; }
+.score-table th { font-family:var(--mono); font-size:.6rem; font-weight:400; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); padding:10px 16px; text-align:left; border-bottom:1px solid var(--border); background:rgba(255,255,255,.02); }
+.score-table td { padding:12px 16px; border-bottom:1px solid var(--border2); vertical-align:middle; }
+.score-table tr:last-child td { border-bottom:none; }
+.score-table tr:hover td { background:rgba(200,241,53,.02); }
+.td-rank { font-family:var(--mono); font-size:.7rem; font-weight:500; width:40px; }
+.td-name { font-size:.85rem; font-weight:500; color:var(--white); }
+.td-sub { font-family:var(--mono); font-size:.6rem; color:var(--muted); margin-top:2px; }
+.td-exp { font-family:var(--mono); font-size:.7rem; color:#888; white-space:nowrap; }
+.td-score-cell { width:100px; }
+.score-wrap { display:flex; align-items:center; gap:8px; }
+.score-mini { width:60px; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+.score-mini-fill { height:100%; border-radius:2px; }
+.score-pct { font-family:var(--mono); font-size:.7rem; font-weight:500; white-space:nowrap; }
+.td-tags { display:flex; gap:5px; flex-wrap:wrap; }
+.tag { font-family:var(--mono); font-size:.55rem; letter-spacing:.06em; padding:3px 8px; border-radius:20px; }
+.tag-green { background:rgba(200,241,53,.1); color:var(--neon); }
+.tag-blue { background:rgba(53,160,241,.1); color:var(--blue); }
+.tag-amber { background:rgba(241,168,53,.1); color:var(--amber); }
+.tag-red { background:rgba(241,53,53,.08); color:var(--red); }
+.td-action { white-space:nowrap; }
+.action-btn { font-family:var(--mono); font-size:.6rem; letter-spacing:.08em; padding:5px 12px; border-radius:2px; border:none; cursor:none; transition:all .2s; display:inline-block; }
+.action-hire { background:rgba(200,241,53,.15); color:var(--neon); border:1px solid rgba(200,241,53,.25); }
+.action-hire:hover { background:rgba(200,241,53,.25); }
+.action-reject { background:rgba(241,53,53,.08); color:var(--red); border:1px solid rgba(241,53,53,.15); }
+.action-reject:hover { background:rgba(241,53,53,.15); }
+.action-review { background:rgba(241,168,53,.08); color:var(--amber); border:1px solid rgba(241,168,53,.15); }
+.action-review:hover { background:rgba(241,168,53,.15); }
+
+.email-preview { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:24px; margin-top:24px; }
+.ep-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+.ep-title { font-family:var(--mono); font-size:.65rem; color:var(--neon); letter-spacing:.15em; text-transform:uppercase; }
+.ep-badge { font-family:var(--mono); font-size:.55rem; color:var(--muted); letter-spacing:.1em; background:var(--border2); padding:3px 8px; border-radius:20px; }
+.ep-meta { font-family:var(--mono); font-size:.65rem; color:var(--muted); line-height:1.8; margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--border2); }
+.ep-meta strong { color:#888; }
+.ep-body { font-size:.82rem; color:#777; line-height:1.8; }
+.ep-body strong { color:var(--white); font-weight:500; }
+.ep-cursor { display:inline-block; width:8px; height:14px; background:var(--neon); animation:blinkAnim .8s step-end infinite; vertical-align:middle; margin-left:2px; }
+
+/* ─── FEATURES ─── */
+.features { background:var(--black); }
+.feat-header { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:end; margin-bottom:60px; }
+.feat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; }
+.feat { background:var(--surface); padding:36px 28px; border:1px solid var(--border); position:relative; overflow:hidden; transition:background .3s, border-color .3s; cursor:none; }
+.feat::before { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:linear-gradient(90deg, var(--neon), var(--neon2)); transform:scaleX(0); transform-origin:left; transition:transform .4s; }
+.feat:hover { background:var(--card); border-color:rgba(200,241,53,.15); }
+.feat:hover::before { transform:scaleX(1); }
+.feat-icon { font-size:2rem; margin-bottom:18px; display:block; }
+.feat-title { font-family:var(--cond); font-size:1.25rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--white); margin-bottom:10px; }
+.feat-text { font-size:.83rem; color:#666; line-height:1.65; }
+.feat-metric { font-family:var(--mono); font-size:.65rem; color:var(--neon); letter-spacing:.1em; margin-top:14px; padding-top:14px; border-top:1px solid var(--border2); }
+
+/* ─── METRICS ─── */
+.metrics { background:var(--neon); padding:80px 60px; position:relative; overflow:hidden; }
+.metrics::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(90deg,rgba(0,0,0,.06) 0,rgba(0,0,0,.06) 1px,transparent 1px,transparent 60px); pointer-events:none; }
+.metrics-inner { max-width:1300px; margin:0 auto; position:relative; z-index:2; }
+.metrics-title { font-family:var(--cond); font-size:clamp(1.8rem,3vw,2.5rem); font-weight:900; text-transform:uppercase; letter-spacing:.05em; color:var(--black); margin-bottom:48px; text-align:center; }
+.metrics-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:2px; }
+.metric { background:rgba(0,0,0,.08); padding:36px 28px; text-align:center; border:1px solid rgba(0,0,0,.1); transition:background .2s; cursor:none; }
+.metric:hover { background:rgba(0,0,0,.15); }
+.metric-num { font-family:var(--cond); font-size:3.5rem; font-weight:900; color:var(--black); line-height:1; display:block; margin-bottom:8px; }
+.metric-label { font-family:var(--mono); font-size:.65rem; color:rgba(0,0,0,.6); letter-spacing:.1em; text-transform:uppercase; }
+.metric-sub { font-size:.75rem; color:rgba(0,0,0,.5); margin-top:6px; }
+
+/* ─── INTEGRATIONS ─── */
+.integrations { background:var(--ink); }
+.integ-head { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; margin-bottom:60px; }
+.integ-pills { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
+.integ-pill { background:var(--surface); border:1px solid var(--border); padding:10px 18px; border-radius:3px; font-family:var(--mono); font-size:.72rem; color:#888; letter-spacing:.05em; transition:all .2s; cursor:none; display:flex; align-items:center; gap:8px; }
+.integ-pill:hover { border-color:rgba(200,241,53,.3); color:var(--neon); background:rgba(200,241,53,.04); }
+.integ-pill-icon { font-size:1rem; }
+.integ-flow { display:grid; grid-template-columns:1fr auto 1fr; gap:16px; align-items:center; }
+.flow-box { background:var(--surface); border:1px solid var(--border); padding:24px; border-radius:4px; text-align:center; }
+.flow-box-icon { font-size:2rem; margin-bottom:10px; display:block; }
+.flow-box-label { font-family:var(--mono); font-size:.6rem; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; }
+.flow-arrow { text-align:center; color:var(--neon); font-size:1.5rem; }
+
+/* ─── PRICING ─── */
+.pricing { background:var(--black); }
+.pricing-head { text-align:center; max-width:600px; margin:0 auto 64px; }
+.pricing-head .sec-label { justify-content:center; }
+.pricing-head .sec-label::before { display:none; }
+.pricing-head .sec-title { text-align:center; }
+.plans { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; }
+.plan { background:var(--surface); border:1px solid var(--border); padding:40px 32px; position:relative; transition:transform .3s; cursor:none; }
+.plan:hover { transform:translateY(-8px); }
+.plan.hot { background:var(--card); border-color:rgba(200,241,53,.3); transform:translateY(-12px); }
+.plan.hot:hover { transform:translateY(-18px); }
+.plan-label { position:absolute; top:-1px; left:50%; transform:translateX(-50%); background:var(--neon); color:var(--black); font-family:var(--mono); font-size:.55rem; font-weight:500; letter-spacing:.15em; text-transform:uppercase; padding:4px 14px; white-space:nowrap; border-radius:0 0 3px 3px; }
+.plan-name { font-family:var(--cond); font-size:1.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--white); margin-bottom:6px; }
+.plan-desc { font-size:.8rem; color:var(--muted); line-height:1.6; margin-bottom:28px; }
+.plan-price { display:flex; align-items:baseline; gap:4px; margin-bottom:32px; }
+.pp-cur { font-family:var(--mono); font-size:1rem; color:var(--neon); }
+.pp-amt { font-family:var(--cond); font-size:3.8rem; font-weight:900; color:var(--white); line-height:1; }
+.plan.hot .pp-amt { color:var(--neon); }
+.pp-per { font-family:var(--mono); font-size:.7rem; color:var(--muted); }
+.plan-feats { list-style:none; display:flex; flex-direction:column; gap:10px; margin-bottom:36px; }
+.plan-feats li { font-size:.83rem; color:#777; padding-left:18px; position:relative; line-height:1.5; }
+.plan-feats li::before { content:'→'; position:absolute; left:0; color:var(--neon); font-size:.75rem; }
+.plan-feats li.no::before { content:'×'; color:var(--muted2); }
+.plan-feats li.no { color:var(--muted2); }
+.plan .btn-neon { width:100%; text-align:center; display:block; }
+.plan .btn-ghost { width:100%; text-align:center; display:block; }
+
+/* ─── TESTIMONIALS ─── */
+.testimonials { background:var(--ink); }
+.testi-head { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:end; margin-bottom:56px; }
+.testi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.testi { background:var(--surface); border:1px solid var(--border); padding:32px; border-radius:3px; transition:border-color .3s, transform .3s; cursor:none; }
+.testi:hover { border-color:rgba(200,241,53,.2); transform:translateY(-4px); }
+.testi-stars { color:var(--neon); font-size:.8rem; letter-spacing:.1em; margin-bottom:16px; }
+.testi-text { font-size:.88rem; color:#888; line-height:1.75; margin-bottom:20px; font-style:italic; }
+.testi-text strong { color:var(--white); font-style:normal; }
+.testi-author { display:flex; align-items:center; gap:12px; }
+.testi-av { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.9rem; flex-shrink:0; }
+.testi-name { font-size:.82rem; font-weight:500; color:var(--white); margin-bottom:2px; }
+.testi-role { font-family:var(--mono); font-size:.6rem; color:var(--muted); letter-spacing:.05em; }
+
+/* ─── CTA ─── */
+.cta-section { background:var(--black); text-align:center; padding:140px 60px; position:relative; overflow:hidden; }
+.cta-section::before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:900px; height:500px; background:radial-gradient(ellipse, rgba(200,241,53,.05) 0%, transparent 60%); pointer-events:none; }
+.cta-section::after { content:''; position:absolute; inset:0; background: linear-gradient(rgba(200,241,53,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(200,241,53,.03) 1px, transparent 1px); background-size:40px 40px; pointer-events:none; }
+.cta-inner { position:relative; z-index:2; }
+.cta-eyebrow { font-family:var(--mono); font-size:.65rem; color:var(--neon); letter-spacing:.25em; text-transform:uppercase; display:block; margin-bottom:16px; }
+.cta-title { font-family:var(--cond); font-size:clamp(3rem,7vw,7rem); font-weight:900; text-transform:uppercase; line-height:.95; margin-bottom:20px; }
+.cta-title .hl { color:var(--neon); text-shadow:0 0 60px rgba(200,241,53,.4); }
+.cta-sub { font-size:1rem; color:#666; margin-bottom:52px; max-width:480px; margin-left:auto; margin-right:auto; }
+.cta-form { display:flex; gap:0; max-width:480px; margin:0 auto 16px; }
+.cta-input { flex:1; background:var(--surface); border:1px solid var(--border); border-right:none; padding:16px 20px; color:var(--white); font-family:var(--mono); font-size:.85rem; outline:none; border-radius:2px 0 0 2px; transition:border-color .3s; }
+.cta-input::placeholder { color:var(--muted); font-size:.8rem; }
+.cta-input:focus { border-color:rgba(200,241,53,.4); }
+.cta-form .btn-neon { border-radius:0 2px 2px 0; white-space:nowrap; }
+.cta-note { font-family:var(--mono); font-size:.62rem; color:var(--muted); letter-spacing:.08em; }
+
+/* ─── FOOTER ─── */
+footer { background:#050505; padding:64px 60px 36px; border-top:1px solid var(--border); }
+.foot-top { display:grid; grid-template-columns:1.5fr 1fr 1fr 1fr; gap:60px; margin-bottom:56px; padding-bottom:56px; border-bottom:1px solid var(--border); }
+.foot-logo { font-family:var(--cond); font-size:1.8rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--white); text-decoration:none; display:block; margin-bottom:12px; }
+.foot-logo span { color:var(--neon); }
+.foot-tagline { font-size:.8rem; color:#444; line-height:1.7; margin-bottom:24px; }
+.foot-col-title { font-family:var(--mono); font-size:.6rem; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); margin-bottom:18px; }
+.foot-links { list-style:none; display:flex; flex-direction:column; gap:10px; }
+.foot-links a { font-size:.82rem; color:#444; text-decoration:none; transition:color .2s; }
+.foot-links a:hover { color:var(--neon); }
+.foot-bottom { display:flex; justify-content:space-between; align-items:center; }
+.foot-legal { font-family:var(--mono); font-size:.6rem; color:#333; letter-spacing:.05em; }
+.foot-copy { font-family:var(--mono); font-size:.6rem; color:#222; }
+
+/* ─── REVEAL ─── */
+.reveal { opacity:0; transform:translateY(28px); transition:opacity .7s ease, transform .7s ease; }
+.reveal.visible { opacity:1; transform:none; }
+.reveal-delay-1 { transition-delay:.1s }
+.reveal-delay-2 { transition-delay:.2s }
+.reveal-delay-3 { transition-delay:.3s }
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:1024px){
+  nav { padding:0 28px; }
+  .nav-links { display:none; }
+  section { padding:80px 28px; }
+  .hero { padding:100px 28px 60px; }
+  .metrics { padding:60px 28px; }
+  .hero-inner,.prob-grid,.how-head,.demo-head,.feat-header,.testi-head,.integ-head { grid-template-columns:1fr; gap:40px; }
+  .steps { grid-template-columns:1fr 1fr; }
+  .feat-grid { grid-template-columns:1fr 1fr; }
+  .metrics-grid { grid-template-columns:1fr 1fr; }
+  .plans { grid-template-columns:1fr; }
+  .plan.hot { transform:none; }
+  .testi-grid { grid-template-columns:1fr; }
+  .foot-top { grid-template-columns:1fr 1fr; }
+  .cta-form { flex-direction:column; }
+  .cta-input { border-right:1px solid var(--border); border-bottom:none; border-radius:2px 2px 0 0; }
+  .cta-form .btn-neon { border-radius:0 0 2px 2px; }
+  .problem::before { font-size:15rem; }
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="cur-ring"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">Hire<span>Grid</span> <span class="nav-badge">BETA</span></a>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#demo">Live Demo</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#waitlist" class="nav-cta">Get Access</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-inner inner">
+    <div>
+      <div class="hero-eyebrow"><span class="blink">▶</span> AI Hiring Co-Pilot · Now Live</div>
+      <h1 class="hero-title">
+        Screen 500<br>
+        <span class="hl">Resumes</span><br>
+        <span class="dim">in 60 seconds.</span>
+      </h1>
+      <p class="hero-sub">
+        HireGrid's AI reads, ranks, and scores every applicant — then
+        <strong>writes the rejection emails too.</strong> Your next hire is already in the stack. Find them faster.
+      </p>
+      <div class="hero-btns">
+        <a href="#waitlist" class="btn-neon">Start Hiring Smarter</a>
+        <a href="#demo" class="btn-ghost">See Live Demo</a>
+      </div>
+    </div>
+
+    <!-- RIGHT: DASHBOARD WITH UPLOAD -->
+    <div>
+      <div class="hero-dash">
+        <div class="dash-topbar">
+          <div class="dash-dots"><div class="dd"></div><div class="dd"></div><div class="dd"></div></div>
+          <div class="dash-title" id="dashTitle">hiregrid.ai — Upload Resumes to Begin</div>
+          <div class="dash-status" id="dashStatus">● READY</div>
+        </div>
+        <div class="dash-body">
+
+          <!-- ════════════════════════════════
+               UPLOAD ZONE — MAIN NEW FEATURE
+          ════════════════════════════════ -->
+          <div class="upload-zone" id="uploadZone">
+            <span class="upload-icon">📂</span>
+            <div class="upload-title">Drop Resumes Here</div>
+            <div class="upload-sub">PDF · DOCX · TXT · MAX 500 FILES</div>
+
+            <!-- Hidden real file input -->
+            <input type="file" id="resumeFileInput" multiple accept=".pdf,.doc,.docx,.txt">
+
+            <!-- Styled button to trigger it -->
+            <label for="resumeFileInput" class="upload-btn">BROWSE FILES</label>
+
+            <span class="upload-or">— OR ENTER COUNT MANUALLY —</span>
+
+            <!-- Manual number input -->
+            <div class="upload-count-row">
+              <div class="upload-count-label">NUMBER OF RESUMES TO SCAN</div>
+              <input
+                type="number"
+                class="upload-count-input"
+                id="resumeCount"
+                value="500"
+                min="1"
+                max="500"
+                placeholder="500"
+              />
+              <div class="upload-count-max">/ 500 MAX</div>
+            </div>
+
+            <!-- Error message -->
+            <div class="upload-error" id="uploadError">⚠ Maximum 500 resumes. Please enter a number between 1–500.</div>
+
+            <!-- File pills (show when files selected) -->
+            <div class="file-list" id="fileList"></div>
+          </div>
+
+          <!-- Start scan button (appears after input) -->
+          <button class="start-scan-btn" id="startScanBtn" onclick="startScan()">
+            ⚡ START AI SCAN
+          </button>
+
+          <!-- Progress bar (hidden until scan starts) -->
+          <div class="scan-progress" id="scanProgress" style="display:none;">
+            <div class="sp-header">
+              <div class="sp-label">SCANNING RESUMES</div>
+              <div class="sp-count" id="spCount">0 / 0</div>
+            </div>
+            <div class="sp-track"><div class="sp-fill" id="spFill"></div></div>
+          </div>
+
+          <!-- Candidate results (hidden until scan starts) -->
+          <div id="candList" style="display:none;">
+            <div class="cand-row" style="border-color:rgba(200,241,53,.15)">
+              <div class="cand-rank top">#1</div>
+              <div class="cand-avatar" style="background:rgba(200,241,53,.12)">👩‍💻</div>
+              <div class="cand-info">
+                <div class="cand-name">Priya Venkataraman</div>
+                <div class="cand-role">SR. FRONTEND ENGINEER · 7YRS</div>
+              </div>
+              <div class="cand-score-bar">
+                <div class="csb-track"><div class="csb-fill" style="width:96%;background:var(--neon)"></div></div>
+                <div class="csb-num" style="color:var(--neon)">96</div>
+              </div>
+              <div class="cand-badge badge-hire">HIRE →</div>
+            </div>
+            <div class="cand-row">
+              <div class="cand-rank top">#2</div>
+              <div class="cand-avatar" style="background:rgba(53,241,160,.1)">👨‍💼</div>
+              <div class="cand-info">
+                <div class="cand-name">Marcus Okonkwo</div>
+                <div class="cand-role">FULLSTACK DEV · 5YRS</div>
+              </div>
+              <div class="cand-score-bar">
+                <div class="csb-track"><div class="csb-fill" style="width:91%;background:var(--neon2)"></div></div>
+                <div class="csb-num" style="color:var(--neon2)">91</div>
+              </div>
+              <div class="cand-badge badge-hire">HIRE →</div>
+            </div>
+            <div class="cand-row">
+              <div class="cand-rank">#3</div>
+              <div class="cand-avatar" style="background:rgba(241,168,53,.1)">👩‍🎨</div>
+              <div class="cand-info">
+                <div class="cand-name">Sofia Reinholt</div>
+                <div class="cand-role">UI/UX ENGINEER · 4YRS</div>
+              </div>
+              <div class="cand-score-bar">
+                <div class="csb-track"><div class="csb-fill" style="width:78%;background:var(--amber)"></div></div>
+                <div class="csb-num" style="color:var(--amber)">78</div>
+              </div>
+              <div class="cand-badge badge-maybe">REVIEW</div>
+            </div>
+            <div class="cand-row" id="rejectedRow">
+              <div class="cand-rank" style="color:#333">#<span id="rejNum">487</span></div>
+              <div class="cand-avatar" style="background:rgba(255,255,255,.04)">👤</div>
+              <div class="cand-info">
+                <div class="cand-name">+ <span id="rejCount">0</span> more</div>
+                <div class="cand-role">SCORED BELOW THRESHOLD · AUTO-PROCESSED</div>
+              </div>
+              <div class="cand-score-bar">
+                <div class="csb-track"><div class="csb-fill" style="width:22%;background:var(--red)"></div></div>
+                <div class="csb-num" style="color:var(--red)">avg 31</div>
+              </div>
+              <div class="cand-badge badge-pass">AUTO-REJECTED</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dash-footer">
+          <div class="df-stat">Analyzed: <strong id="dfsCount">0</strong> resumes</div>
+          <div class="df-stat">Top match: <strong>96%</strong></div>
+          <div class="df-time" id="dfsTime">00:00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker"><div class="ticker-inner" id="tickerEl"></div></div>
+
+<!-- PROBLEM -->
+<section class="problem" id="problem">
+  <div class="inner prob-grid">
+    <div>
+      <div class="sec-label">The Problem</div>
+      <h2 class="sec-title">Hiring is<br><span class="hl">broken.</span><br><span class="dim">We fixed it.</span></h2>
+      <p class="sec-body">The average job post receives 250 applications. Your HR team manually reviews maybe 30 of them. The best candidate? They're probably in the pile you never opened.</p>
+    </div>
+    <div class="prob-cards">
+      <div class="prob-card reveal"><div class="prob-card-icon">⏳</div><div><div class="prob-card-title">23 Hours Per Hire Wasted</div><div class="prob-card-text">HR teams spend 23+ hours per role just reading resumes — before a single interview is booked. That's time your company will never get back.</div></div></div>
+      <div class="prob-card reveal reveal-delay-1"><div class="prob-card-icon">🎯</div><div><div class="prob-card-title">Top Talent Gets Missed</div><div class="prob-card-text">The best candidates are buried in stacks of 250+. Manual screening introduces fatigue bias — reviewers stop reading carefully after resume #20.</div></div></div>
+      <div class="prob-card reveal reveal-delay-2"><div class="prob-card-icon">💸</div><div><div class="prob-card-title">Bad Hires Cost $17,000+</div><div class="prob-card-text">The average cost of a bad hire is $17,000. Rushing through applications under pressure leads to poor-fit hires that drain teams for months.</div></div></div>
+      <div class="prob-card reveal reveal-delay-3"><div class="prob-card-icon">📬</div><div><div class="prob-card-title">Rejections Never Get Sent</div><div class="prob-card-text">83% of candidates never receive a rejection email. Your employer brand suffers. Top talent bad-mouths the experience on Glassdoor.</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="inner">
+    <div class="how-head">
+      <div><div class="sec-label">How It Works</div><h2 class="sec-title">From inbox<br>to interview<br><span class="hl">in minutes.</span></h2></div>
+      <p class="sec-body">HireGrid connects to your ATS or email inbox, reads every resume the moment it arrives, and delivers a ranked shortlist before you've finished your morning coffee.</p>
+    </div>
+    <div class="steps reveal">
+      <div class="step"><div class="step-num">01 / 05</div><span class="step-icon">📥</span><div class="step-title">Upload / Connect</div><p class="step-text">Drop a folder of resumes, connect your ATS (Greenhouse, Lever, Workday), or forward your hiring inbox. HireGrid ingests everything instantly.</p></div>
+      <div class="step"><div class="step-num">02 / 05</div><span class="step-icon">🧠</span><div class="step-title">AI Reads All</div><p class="step-text">Our LLM reads every resume — PDFs, DOCs, scanned images — and extracts 47 structured signals per candidate including skills, gaps, and red flags.</p></div>
+      <div class="step"><div class="step-num">03 / 05</div><span class="step-icon">📊</span><div class="step-title">Score & Rank</div><p class="step-text">Each candidate receives a fit score (0–100) based on your exact job requirements. Custom weights for skills, experience, education, and culture signals.</p></div>
+      <div class="step"><div class="step-num">04 / 05</div><span class="step-icon">✉️</span><div class="step-title">Emails Written</div><p class="step-text">HireGrid drafts personalized, empathetic rejection emails for every passed candidate — with one-click send or schedule. Never ghost another applicant.</p></div>
+      <div class="step"><div class="step-num">05 / 05</div><span class="step-icon">📅</span><div class="step-title">You Interview</div><p class="step-text">Review your ranked shortlist of top 10 candidates with AI-generated summaries and suggested interview questions. You only meet the best.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- LIVE DEMO -->
+<section class="demo-section" id="demo">
+  <div class="demo-inner">
+    <div class="demo-head">
+      <div><div class="sec-label">Live Demo</div><h2 class="sec-title">Watch the<br><span class="hl">AI work</span><br>in real time.</h2></div>
+      <p class="sec-body">Below is a live simulation of HireGrid processing 500 resumes for a Senior React Developer role. Every score, tag, and rejection email is generated by our AI in real time.</p>
+    </div>
+    <div class="terminal reveal">
+      <div class="term-bar">
+        <div class="term-dots"><div class="td"></div><div class="td"></div><div class="td"></div></div>
+        <div class="term-title">HireGrid AI Engine — Role: Senior React Developer · 500 Applicants</div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="score-table">
+          <thead><tr><th>#</th><th>Candidate</th><th>Experience</th><th>AI Score</th><th>Key Signals</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td class="td-rank" style="color:var(--neon)">01</td><td><div class="td-name">Priya Venkataraman</div><div class="td-sub">Google → Stripe → Startup founder</div></td><td class="td-exp">7 yrs</td><td class="td-score-cell"><div class="score-wrap"><div class="score-mini"><div class="score-mini-fill" style="width:96%;background:var(--neon)"></div></div><span class="score-pct" style="color:var(--neon)">96 / 100</span></div></td><td><div class="td-tags"><span class="tag tag-green">React Expert</span><span class="tag tag-green">TypeScript</span><span class="tag tag-blue">Led Team</span></div></td><td class="td-action"><button class="action-btn action-hire">SCHEDULE →</button></td></tr>
+            <tr><td class="td-rank" style="color:var(--neon)">02</td><td><div class="td-name">Marcus Okonkwo</div><div class="td-sub">Meta → Shopify · Open source contrib.</div></td><td class="td-exp">5 yrs</td><td class="td-score-cell"><div class="score-wrap"><div class="score-mini"><div class="score-mini-fill" style="width:91%;background:var(--neon2)"></div></div><span class="score-pct" style="color:var(--neon2)">91 / 100</span></div></td><td><div class="td-tags"><span class="tag tag-green">Next.js</span><span class="tag tag-green">GraphQL</span><span class="tag tag-blue">OSS</span></div></td><td class="td-action"><button class="action-btn action-hire">SCHEDULE →</button></td></tr>
+            <tr><td class="td-rank" style="color:var(--neon2)">03</td><td><div class="td-name">Sofia Reinholt</div><div class="td-sub">Spotify → Freelance · Design systems</div></td><td class="td-exp">4 yrs</td><td class="td-score-cell"><div class="score-wrap"><div class="score-mini"><div class="score-mini-fill" style="width:84%;background:var(--neon2)"></div></div><span class="score-pct" style="color:var(--neon2)">84 / 100</span></div></td><td><div class="td-tags"><span class="tag tag-green">React</span><span class="tag tag-blue">Design Sys</span><span class="tag tag-amber">No TS</span></div></td><td class="td-action"><button class="action-btn action-hire">SCHEDULE →</button></td></tr>
+            <tr><td class="td-rank" style="color:var(--amber)">04</td><td><div class="td-name">David Kimura</div><div class="td-sub">Agency background · Versatile stack</div></td><td class="td-exp">6 yrs</td><td class="td-score-cell"><div class="score-wrap"><div class="score-mini"><div class="score-mini-fill" style="width:72%;background:var(--amber)"></div></div><span class="score-pct" style="color:var(--amber)">72 / 100</span></div></td><td><div class="td-tags"><span class="tag tag-blue">Vue/React</span><span class="tag tag-amber">Mixed exp</span></div></td><td class="td-action"><button class="action-btn action-review">REVIEW</button></td></tr>
+            <tr><td class="td-rank" style="color:var(--amber)">05</td><td><div class="td-name">Amara Nwosu</div><div class="td-sub">Mid-level · Strong academic background</div></td><td class="td-exp">3 yrs</td><td class="td-score-cell"><div class="score-wrap"><div class="score-mini"><div class="score-mini-fill" style="width:68%;background:var(--amber)"></div></div><span class="score-pct" style="color:var(--amber)">68 / 100</span></div></td><td><div class="td-tags"><span class="tag tag-green">React</span><span class="tag tag-amber">Junior gap</span></div></td><td class="td-action"><button class="action-btn action-review">REVIEW</button></td></tr>
+            <tr><td class="td-rank" style="color:var(--muted)">…</td><td><div class="td-name" style="color:var(--muted)">489 more candidates</div><div class="td-sub">Scores 12–65 · Auto-processed</div></td><td class="td-exp" style="color:var(--muted)">—</td><td class="td-score-cell"><div class="score-wrap"><div class="score-mini"><div class="score-mini-fill" style="width:40%;background:var(--muted)"></div></div><span class="score-pct" style="color:var(--muted)">avg 38</span></div></td><td><div class="td-tags"><span class="tag" style="background:rgba(255,255,255,.05);color:var(--muted)">Various</span></div></td><td class="td-action"><button class="action-btn action-reject">REJECTED ✓</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="email-preview reveal">
+      <div class="ep-header"><div class="ep-title">⚡ AI-Generated Rejection Email (Auto-Sent to 489 Candidates)</div><div class="ep-badge">GENERATED IN 0.3s / CANDIDATE</div></div>
+      <div class="ep-meta"><strong>From:</strong> careers@yourcompany.com &nbsp;&nbsp;<strong>To:</strong> applicant@email.com &nbsp;&nbsp;<strong>Subject:</strong> Your Application for Senior React Developer — HireGrid AI</div>
+      <div class="ep-body">Hi <strong>James</strong>,<br><br>Thank you for taking the time to apply for the <strong>Senior React Developer</strong> position at <strong>TechCorp</strong>. We genuinely appreciate your interest and the effort that goes into every application.<br><br>After reviewing your background, we've decided to move forward with candidates whose experience more closely aligns with our current technical requirements — specifically, <strong>5+ years of production React experience and TypeScript proficiency</strong>. This decision reflects the specificity of the role rather than a reflection of your potential.<br><br>We'd encourage you to continue building your React portfolio and consider reapplying in the future. We wish you every success in your job search.<br><br>Warm regards,<br><strong>The TechCorp Hiring Team</strong><span class="ep-cursor"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="inner">
+    <div class="feat-header">
+      <div><div class="sec-label">Features</div><h2 class="sec-title">Everything your<br>team needs to<br><span class="hl">hire better.</span></h2></div>
+      <p class="sec-body">HireGrid isn't just a resume scanner. It's a full AI hiring co-pilot — from first application to signed offer letter.</p>
+    </div>
+    <div class="feat-grid reveal">
+      <div class="feat"><span class="feat-icon">⚡</span><div class="feat-title">500 Resumes in 60s</div><p class="feat-text">Our parallel processing engine reads every PDF, Word doc, and plain-text resume simultaneously. No queues. No waiting.</p><div class="feat-metric">→ 99.7% accuracy on structured extraction</div></div>
+      <div class="feat"><span class="feat-icon">🎯</span><div class="feat-title">Custom Scoring Rubrics</div><p class="feat-text">Define exactly what matters for each role. Weight skills, years of experience, education, location, company prestige — or let AI auto-configure from the JD.</p><div class="feat-metric">→ 47 data points extracted per resume</div></div>
+      <div class="feat"><span class="feat-icon">✉️</span><div class="feat-title">Auto Rejection Emails</div><p class="feat-text">Personalized, empathetic rejection emails written and sent automatically. Specific to each candidate's application. No templates. No ghosting.</p><div class="feat-metric">→ Avg. 94% positive sentiment from recipients</div></div>
+      <div class="feat"><span class="feat-icon">🔍</span><div class="feat-title">Bias Detection Mode</div><p class="feat-text">AI flags potential bias indicators in scoring. Anonymize candidate names, photos, and schools for blind shortlisting. Build a fairer pipeline.</p><div class="feat-metric">→ Reduces demographic screening bias by 67%</div></div>
+      <div class="feat"><span class="feat-icon">❓</span><div class="feat-title">Interview Question Generator</div><p class="feat-text">For each shortlisted candidate, HireGrid generates tailored interview questions based on their specific resume gaps and strengths.</p><div class="feat-metric">→ Avg. 8 role-specific questions per candidate</div></div>
+      <div class="feat"><span class="feat-icon">🔗</span><div class="feat-title">ATS Integrations</div><p class="feat-text">Native sync with Greenhouse, Lever, Workday, BambooHR, and 30+ other systems. Scores push back to your ATS automatically.</p><div class="feat-metric">→ 30+ ATS integrations available</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metrics-inner">
+    <div class="metrics-title">Results our customers actually see</div>
+    <div class="metrics-grid reveal">
+      <div class="metric"><span class="metric-num" data-target="87">0</span><div class="metric-label">% time saved on screening</div><div class="metric-sub">From 23hrs to under 3hrs per role</div></div>
+      <div class="metric"><span class="metric-num" data-target="3">0</span><div class="metric-label">× better candidate quality</div><div class="metric-sub">Measured by 90-day retention rate</div></div>
+      <div class="metric"><span class="metric-num" data-target="489">0</span><div class="metric-label">avg rejections auto-sent</div><div class="metric-sub">Per hire. Zero manual effort.</div></div>
+      <div class="metric"><span class="metric-num" data-target="4200">0</span><div class="metric-label">companies using HireGrid</div><div class="metric-sub">From seed startups to Fortune 500</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- INTEGRATIONS -->
+<section class="integrations" id="integrations">
+  <div class="inner">
+    <div class="integ-head">
+      <div>
+        <div class="sec-label">Integrations</div>
+        <h2 class="sec-title">Works with<br><span class="hl">your stack.</span></h2>
+        <p class="sec-body" style="margin-bottom:28px;">HireGrid plugs into every tool your hiring team already uses. No rip-and-replace required.</p>
+        <div class="integ-pills">
+          <div class="integ-pill"><span class="integ-pill-icon">🌿</span>Greenhouse</div>
+          <div class="integ-pill"><span class="integ-pill-icon">⚖️</span>Lever</div>
+          <div class="integ-pill"><span class="integ-pill-icon">🏢</span>Workday</div>
+          <div class="integ-pill"><span class="integ-pill-icon">🎋</span>BambooHR</div>
+          <div class="integ-pill"><span class="integ-pill-icon">📊</span>SmartRecruiters</div>
+          <div class="integ-pill"><span class="integ-pill-icon">💼</span>LinkedIn Jobs</div>
+          <div class="integ-pill"><span class="integ-pill-icon">📧</span>Gmail / Outlook</div>
+          <div class="integ-pill"><span class="integ-pill-icon">💬</span>Slack</div>
+          <div class="integ-pill"><span class="integ-pill-icon">📅</span>Calendly</div>
+          <div class="integ-pill"><span class="integ-pill-icon">🔌</span>Zapier</div>
+          <div class="integ-pill"><span class="integ-pill-icon">⚙️</span>REST API</div>
+          <div class="integ-pill"><span class="integ-pill-icon">+</span>20 more...</div>
+        </div>
+      </div>
+      <div>
+        <div class="integ-flow">
+          <div class="flow-box"><span class="flow-box-icon">📬</span><div class="flow-box-label">500 Resumes<br>Drop In</div></div>
+          <div class="flow-arrow">⚡→</div>
+          <div class="flow-box"><span class="flow-box-icon">🧠</span><div class="flow-box-label">HireGrid<br>AI Engine</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;">
+          <div class="flow-box" style="padding:16px;"><span class="flow-box-icon" style="font-size:1.4rem">📋</span><div class="flow-box-label" style="font-size:.55rem">Ranked<br>Shortlist</div></div>
+          <div class="flow-box" style="padding:16px;"><span class="flow-box-icon" style="font-size:1.4rem">✉️</span><div class="flow-box-label" style="font-size:.55rem">Auto<br>Rejections</div></div>
+          <div class="flow-box" style="padding:16px;"><span class="flow-box-icon" style="font-size:1.4rem">📅</span><div class="flow-box-label" style="font-size:.55rem">Interview<br>Booked</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="inner">
+    <div class="pricing-head reveal">
+      <div class="sec-label">Pricing</div>
+      <h2 class="sec-title">ROI from<br><span class="hl">day one.</span></h2>
+      <p class="sec-body" style="text-align:center;margin:0 auto">One bad hire costs $17,000. HireGrid pays for itself on the first role.</p>
+    </div>
+    <div class="plans reveal">
+      <div class="plan"><div class="plan-name">Starter</div><p class="plan-desc">For small teams hiring their first 10 roles.</p><div class="plan-price"><span class="pp-cur">$</span><span class="pp-amt">49</span><span class="pp-per">/mo</span></div><ul class="plan-feats"><li>Up to 3 active job roles</li><li>500 resumes / role / month</li><li>AI scoring & ranking</li><li>Auto rejection emails</li><li>Email inbox integration</li><li class="no">ATS integrations</li><li class="no">Bias detection mode</li><li class="no">Interview Q generator</li></ul><a href="#waitlist" class="btn-ghost">Get Started</a></div>
+      <div class="plan hot"><div class="plan-label">Most Popular</div><div class="plan-name">Growth</div><p class="plan-desc">For scaling teams with serious hiring volume.</p><div class="plan-price"><span class="pp-cur">$</span><span class="pp-amt">199</span><span class="pp-per">/mo</span></div><ul class="plan-feats"><li>Unlimited active roles</li><li>5,000 resumes / month</li><li>AI scoring & custom rubrics</li><li>Auto rejection emails</li><li>All ATS integrations</li><li>Bias detection mode</li><li>Interview Q generator</li><li class="no">Dedicated success manager</li></ul><a href="#waitlist" class="btn-neon">Start Free Trial</a></div>
+      <div class="plan"><div class="plan-name">Enterprise</div><p class="plan-desc">For companies hiring at scale, globally.</p><div class="plan-price"><span class="pp-cur">$</span><span class="pp-amt">799</span><span class="pp-per">/mo</span></div><ul class="plan-feats"><li>Everything in Growth</li><li>Unlimited resumes</li><li>Multi-team & department access</li><li>Custom AI model training</li><li>HRIS deep integration</li><li>SOC 2 compliance reporting</li><li>Dedicated success manager</li><li>SLA guarantee & audit logs</li></ul><a href="#waitlist" class="btn-ghost">Contact Sales</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials" id="testimonials">
+  <div class="inner">
+    <div class="testi-head">
+      <div><div class="sec-label">What Teams Say</div><h2 class="sec-title">Hiring teams<br>that <span class="hl">love</span><br>HireGrid.</h2></div>
+      <p class="sec-body">From 3-person startups to 10,000-person enterprises, HireGrid is changing how great companies find great people.</p>
+    </div>
+    <div class="testi-grid reveal">
+      <div class="testi"><div class="testi-stars">★★★★★</div><p class="testi-text">We went from spending <strong>3 weeks</strong> shortlisting 400 applications to doing it in <strong>4 minutes</strong>. I still can't believe that's real. HireGrid found our best engineering hire in a stack I would've never reached.</p><div class="testi-author"><div class="testi-av" style="background:rgba(200,241,53,.1)">👩‍💼</div><div><div class="testi-name">Rachel Cho</div><div class="testi-role">VP PEOPLE · SERIES B FINTECH · 180 EMPLOYEES</div></div></div></div>
+      <div class="testi"><div class="testi-stars">★★★★★</div><p class="testi-text">The rejection email feature alone is worth it. We used to ghost <strong>90% of applicants</strong>. Now every single person gets a thoughtful, personalized response. Our Glassdoor score went from 3.1 to <strong>4.6 in 6 months.</strong></p><div class="testi-author"><div class="testi-av" style="background:rgba(53,160,241,.1)">🧑‍💻</div><div><div class="testi-name">Mateo Fuentes</div><div class="testi-role">HEAD OF TALENT · SAAS STARTUP · 40 EMPLOYEES</div></div></div></div>
+      <div class="testi"><div class="testi-stars">★★★★★</div><p class="testi-text">We hire for 200+ roles per year. Before HireGrid our recruiters were drowning. Now <strong>one recruiter manages what took a team of six</strong>. The bias detection feature also helped us hit our diversity hiring goals for the first time.</p><div class="testi-author"><div class="testi-av" style="background:rgba(241,168,53,.1)">👨‍🏫</div><div><div class="testi-name">Sandra Otieno</div><div class="testi-role">CHIEF PEOPLE OFFICER · ENTERPRISE · 3,200 EMPLOYEES</div></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="waitlist">
+  <div class="cta-inner">
+    <span class="cta-eyebrow">▶ Join 4,200+ companies already hiring smarter</span>
+    <h2 class="cta-title">Stop reading.<br>Start <span class="hl">hiring.</span></h2>
+    <p class="cta-sub">Your next great hire is already in your inbox. Let AI find them in 60 seconds.</p>
+    <div class="cta-form">
+      <input type="email" class="cta-input" id="ctaEmail" placeholder="your@company.com" />
+      <button class="btn-neon" onclick="doSignup()">GET EARLY ACCESS</button>
+    </div>
+    <div class="cta-note" id="ctaNote">Free 14-day trial · No credit card · Setup in 5 minutes</div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-top">
+    <div>
+      <a href="#" class="foot-logo">Hire<span>Grid</span></a>
+      <p class="foot-tagline">The AI hiring co-pilot that screens 500 resumes in 60 seconds, ranks every candidate, and writes the rejection emails too. Hire better. Hire faster.</p>
+      <div style="font-family:var(--mono);font-size:.6rem;color:#2a2a2a;letter-spacing:.05em;">© 2025 HireGrid Inc. All rights reserved.</div>
+    </div>
+    <div><div class="foot-col-title">Product</div><ul class="foot-links"><li><a href="#">How It Works</a></li><li><a href="#">Features</a></li><li><a href="#">Integrations</a></li><li><a href="#">Pricing</a></li><li><a href="#">Changelog</a></li></ul></div>
+    <div><div class="foot-col-title">Company</div><ul class="foot-links"><li><a href="#">About</a></li><li><a href="#">Blog</a></li><li><a href="#">Careers</a></li><li><a href="#">Press</a></li><li><a href="#">Contact</a></li></ul></div>
+    <div><div class="foot-col-title">Legal</div><ul class="foot-links"><li><a href="#">Privacy Policy</a></li><li><a href="#">Terms of Service</a></li><li><a href="#">GDPR / CCPA</a></li><li><a href="#">SOC 2</a></li><li><a href="#">EEOC Compliance</a></li></ul></div>
+  </div>
+  <div class="foot-bottom">
+    <div class="foot-legal">HireGrid AI is a screening tool. All final hiring decisions must be made by qualified humans in compliance with applicable employment law.</div>
+    <div class="foot-copy">Built for people who hate reading resumes ⚡</div>
+  </div>
+</footer>
+
+<script>
+/* ── CURSOR ── */
+const cur = document.getElementById('cur');
+const ring = document.getElementById('cur-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{ mx=e.clientX; my=e.clientY; cur.style.left=mx+'px'; cur.style.top=my+'px'; });
+(function animate(){ rx+=(mx-rx)*.13; ry+=(my-ry)*.13; ring.style.left=rx+'px'; ring.style.top=ry+'px'; requestAnimationFrame(animate); })();
+document.querySelectorAll('a,button,.prob-card,.feat,.plan,.testi,.integ-pill,.metric,.upload-zone').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{ cur.style.transform='translate(-50%,-50%) scale(2.5)'; ring.style.width='52px'; ring.style.height='52px'; ring.style.opacity='.8'; });
+  el.addEventListener('mouseleave',()=>{ cur.style.transform='translate(-50%,-50%) scale(1)'; ring.style.width='32px'; ring.style.height='32px'; ring.style.opacity='.4'; });
+});
+
+/* ── TICKER ── */
+const tickItems = ['⚡ 500 resumes screened','✉️ 489 rejections sent','🎯 Top candidate scored 96/100','🤖 AI model v4.2 active','📊 Bias detection running','📅 3 interviews booked today','🔗 Greenhouse sync active','⚡ 0.3s per resume','🚀 Hire 8× faster','✅ 4,200 companies live','📈 87% time saved','🌍 42 countries supported'];
+const tickEl = document.getElementById('tickerEl');
+const all = [...tickItems,...tickItems];
+tickEl.innerHTML = all.map(t=>`<div class="tick-item">${t}<span class="tick-sep">◆</span></div>`).join('');
+
+/* ═══════════════════════════════════════
+   UPLOAD ZONE LOGIC — ALL NEW
+═══════════════════════════════════════ */
+const uploadZone   = document.getElementById('uploadZone');
+const fileInput    = document.getElementById('resumeFileInput');
+const countInput   = document.getElementById('resumeCount');
+const fileList     = document.getElementById('fileList');
+const startBtn     = document.getElementById('startScanBtn');
+const errorMsg     = document.getElementById('uploadError');
+
+let totalToScan = 500; // default
+
+// ── Drag & Drop ──
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files).filter(f => /\.(pdf|doc|docx|txt)$/i.test(f.name));
+  handleFiles(files);
+});
+
+// ── File input change ──
+fileInput.addEventListener('change', () => {
+  const files = Array.from(fileInput.files);
+  handleFiles(files);
+});
+
+function handleFiles(files) {
+  const max = 500;
+  const count = Math.min(files.length, max);
+  errorMsg.classList.remove('show');
+
+  if (files.length > max) {
+    errorMsg.textContent = `⚠ You selected ${files.length} files. Only the first 500 will be processed.`;
+    errorMsg.classList.add('show');
+  }
+
+  // Update count input to match actual file count
+  countInput.value = count;
+  totalToScan = count;
+
+  // Show file name pills (first 6, then "+N more")
+  fileList.innerHTML = '';
+  const show = files.slice(0, 6);
+  show.forEach(f => {
+    const pill = document.createElement('div');
+    pill.className = 'file-pill';
+    pill.textContent = f.name.length > 18 ? f.name.slice(0,15)+'…' : f.name;
+    fileList.appendChild(pill);
+  });
+  if (files.length > 6) {
+    const extra = document.createElement('div');
+    extra.className = 'file-pill extra';
+    extra.textContent = `+${files.length - 6} more`;
+    fileList.appendChild(extra);
+  }
+
+  uploadZone.classList.add('has-files');
+  startBtn.classList.add('visible');
+  startBtn.textContent = `⚡ SCAN ${count} RESUME${count !== 1 ? 'S' : ''} NOW`;
+}
+
+// ── Manual number input ──
+countInput.addEventListener('input', () => {
+  let val = parseInt(countInput.value);
+  errorMsg.classList.remove('show');
+
+  if (isNaN(val) || val < 1) {
+    // don't show error while typing, just don't enable button
+    startBtn.classList.remove('visible');
+    return;
+  }
+
+  if (val > 500) {
+    val = 500;
+    countInput.value = 500;
+    errorMsg.textContent = '⚠ Maximum is 500 resumes. Value capped at 500.';
+    errorMsg.classList.add('show');
+  }
+
+  totalToScan = val;
+  uploadZone.classList.add('has-files');
+  startBtn.classList.add('visible');
+  startBtn.textContent = `⚡ SCAN ${val} RESUME${val !== 1 ? 'S' : ''} NOW`;
+});
+
+// Enforce max on blur too
+countInput.addEventListener('blur', () => {
+  let val = parseInt(countInput.value);
+  if (isNaN(val) || val < 1) { countInput.value = 1; totalToScan = 1; }
+  if (val > 500) { countInput.value = 500; totalToScan = 500; }
+});
+
+/* ── START SCAN ── */
+let scanRunning = false;
+let scanInterval = null;
+
+function startScan() {
+  if (scanRunning) return;
+  scanRunning = true;
+
+  const total = totalToScan;
+
+  // Hide upload zone, show progress + results
+  uploadZone.style.display = 'none';
+  startBtn.style.display = 'none';
+  document.getElementById('scanProgress').style.display = 'block';
+  document.getElementById('candList').style.display = 'block';
+
+  // Update rejected row count
+  const rejNum  = Math.max(1, total - 3);
+  document.getElementById('rejNum').textContent  = rejNum;
+  document.getElementById('rejCount').textContent = Math.max(0, total - 3);
+
+  // Update dashboard title & status
+  document.getElementById('dashTitle').textContent = `hiregrid.ai — Scanning ${total} Resumes`;
+  document.getElementById('dashStatus').textContent = '● LIVE';
+  document.getElementById('dashStatus').style.color = 'var(--neon)';
+
+  const spFill   = document.getElementById('spFill');
+  const spCount  = document.getElementById('spCount');
+  const dfsCount = document.getElementById('dfsCount');
+  const dfsTime  = document.getElementById('dfsTime');
+  const dashStat = document.getElementById('dashStatus');
+
+  let count = 0, elapsed = 0;
+  spCount.textContent = `0 / ${total}`;
+
+  scanInterval = setInterval(() => {
+    const inc = Math.max(1, Math.floor(Math.random() * (total < 50 ? 3 : 18)) + 1);
+    count = Math.min(count + inc, total);
+    elapsed++;
+    spFill.style.width = (count / total * 100) + '%';
+    spCount.textContent = `${count} / ${total}`;
+    dfsCount.textContent = count;
+    const m = Math.floor(elapsed/60).toString().padStart(2,'0');
+    const s = (elapsed%60).toString().padStart(2,'0');
+    dfsTime.textContent = m+':'+s;
+
+    if (count >= total) {
+      clearInterval(scanInterval);
+      scanRunning = false;
+      dashStat.textContent = '✓ COMPLETE';
+      dashStat.style.color = 'var(--neon2)';
+      spCount.textContent = `${total} / ${total} ✓`;
+      document.getElementById('dashTitle').textContent = `hiregrid.ai — Scan Complete · ${total} Resumes`;
+      // Reset button to allow re-scan
+      setTimeout(() => {
+        document.getElementById('scanProgress').style.display = 'none';
+        uploadZone.style.display = 'block';
+        startBtn.style.display = 'block';
+        uploadZone.classList.remove('has-files');
+        fileList.innerHTML = '';
+        countInput.value = 500;
+        totalToScan = 500;
+        startBtn.textContent = '⚡ START AI SCAN';
+        dashStat.textContent = '● READY';
+        dashStat.style.color = 'var(--neon)';
+        document.getElementById('dashTitle').textContent = 'hiregrid.ai — Upload Resumes to Begin';
+        document.getElementById('candList').style.display = 'none';
+        spFill.style.width = '0%';
+        count = 0; elapsed = 0;
+        dfsCount.textContent = '0';
+        dfsTime.textContent = '00:00';
+        errorMsg.classList.remove('show');
+      }, 5000);
+    }
+  }, total < 20 ? 400 : 120);
+}
+
+/* ── REVEAL ── */
+const reveals = document.querySelectorAll('.reveal');
+const revObs = new IntersectionObserver(entries=>{ entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); }); },{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+reveals.forEach(r=>revObs.observe(r));
+
+/* ── METRIC COUNTERS ── */
+function animCount(el,target,suffix=''){
+  const dur=2000,start=performance.now();
+  (function update(now){ const p=Math.min((now-start)/dur,1),e2=1-Math.pow(1-p,3); el.textContent=Math.round(target*e2)+suffix; if(p<1)requestAnimationFrame(update); else el.textContent=target+suffix; })(start);
+}
+const metNums=document.querySelectorAll('.metric-num[data-target]');
+const metObs=new IntersectionObserver(entries=>{ entries.forEach(e=>{ if(e.isIntersecting){ const t=parseInt(e.target.dataset.target),suffix=e.target.dataset.target==='3'?'×':e.target.dataset.target==='87'?'%':''; animCount(e.target,t,suffix); metObs.unobserve(e.target); } }); },{threshold:.5});
+metNums.forEach(m=>metObs.observe(m));
+
+/* ── SMOOTH SCROLL ── */
+document.querySelectorAll('a[href^="#"]').forEach(a=>{ a.addEventListener('click',e=>{ const t=document.querySelector(a.getAttribute('href')); if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'});} }); });
+
+/* ── SIGNUP ── */
+function doSignup(){
+  const email=document.getElementById('ctaEmail').value,note=document.getElementById('ctaNote');
+  if(email&&email.includes('@')){ note.textContent="⚡ You're in! Check your inbox for early access details."; note.style.color='var(--neon)'; document.getElementById('ctaEmail').value=''; }
+  else { note.textContent='Please enter a valid email address.'; note.style.color='var(--red)'; }
+}
+document.getElementById('ctaEmail').addEventListener('keydown',e=>{if(e.key==='Enter')doSignup();});
+
+/* ── ACTION BUTTONS ── */
+document.querySelectorAll('.action-btn').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    const orig=this.textContent;
+    if(this.classList.contains('action-hire')){this.textContent='✓ BOOKED';this.style.background='rgba(200,241,53,.25)';}
+    else if(this.classList.contains('action-reject')){this.textContent='✓ EMAIL SENT';}
+    else{this.textContent='✓ QUEUED';}
+    setTimeout(()=>{this.textContent=orig;this.style.background='';},2000);
+  });
+});
+</script>
+</body>
+</html>
